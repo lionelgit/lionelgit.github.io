@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next muse use-motion" lang="zh-Hans">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform">
+<meta http-equiv="Cache-Control" content="no-siteapp">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css">
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css">
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="数据结构,乐观锁,悲观锁,CAS算法,volatile,线程安全,">
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="技术点：1.悲观锁和乐观锁悲观锁是指如果一个进程占用了一个锁，而导致其他需要这个锁的线程进入等待，一直到该锁被释放，换句话说就是这个锁被独占，比如典型的synchronized； 乐观锁是指操作并不加锁，而是抱着尝试的心态去执行某项操作，如果操作失败或者操作冲突，那么就进入重试，一直到执行成功为止。">
+<meta name="keywords" content="数据结构,乐观锁,悲观锁,CAS算法,volatile,线程安全">
+<meta property="og:type" content="article">
+<meta property="og:title" content="数据结构——ConcurrentHashMap">
+<meta property="og:url" content="http://yoursite.com/2018/11/05/数据结构——ConcurrentHashMap/index.html">
+<meta property="og:site_name" content="Tiger">
+<meta property="og:description" content="技术点：1.悲观锁和乐观锁悲观锁是指如果一个进程占用了一个锁，而导致其他需要这个锁的线程进入等待，一直到该锁被释放，换句话说就是这个锁被独占，比如典型的synchronized； 乐观锁是指操作并不加锁，而是抱着尝试的心态去执行某项操作，如果操作失败或者操作冲突，那么就进入重试，一直到执行成功为止。">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://yoursite.com/pic/1536022937215.png">
+<meta property="og:image" content="http://yoursite.com/pic/1536023910091.png">
+<meta property="og:image" content="http://yoursite.com/pic/1536648927992.png">
+<meta property="og:updated_time" content="2018-11-05T15:19:23.791Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="数据结构——ConcurrentHashMap">
+<meta name="twitter:description" content="技术点：1.悲观锁和乐观锁悲观锁是指如果一个进程占用了一个锁，而导致其他需要这个锁的线程进入等待，一直到该锁被释放，换句话说就是这个锁被独占，比如典型的synchronized； 乐观锁是指操作并不加锁，而是抱着尝试的心态去执行某项操作，如果操作失败或者操作冲突，那么就进入重试，一直到执行成功为止。">
+<meta name="twitter:image" content="http://yoursite.com/pic/1536022937215.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Muse',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2018/11/05/数据结构——ConcurrentHashMap/">
+
+
+
+
+
+  <title>数据结构——ConcurrentHashMap | Tiger</title>
+  
+
+
+
+
+
+
+
+
+</head>
+
+<body itemscope="" itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <a href="https://github.com/lionelgit" class="github-corner" aria-label="View source on GitHub"><svg width="80" height="80" viewbox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"/><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"/><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"/></svg></a><style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>	
+	
+    <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Tiger</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br>
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-user"></i> <br>
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br>
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br>
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br>
+            
+            归档
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/11/05/数据结构——ConcurrentHashMap/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="虎良钰">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/pic/timg.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tiger">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">数据结构——ConcurrentHashMap</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-11-05T22:58:01+08:00">
+                2018-11-05
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/数据结构/" itemprop="url" rel="index">
+                    <span itemprop="name">数据结构</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="技术点："><a href="#技术点：" class="headerlink" title="技术点："></a>技术点：</h2><h3 id="1-悲观锁和乐观锁"><a href="#1-悲观锁和乐观锁" class="headerlink" title="1.悲观锁和乐观锁"></a>1.悲观锁和乐观锁</h3><p>悲观锁是指如果一个进程占用了一个锁，而导致其他需要这个锁的线程进入等待，一直到该锁被释放，换句话说就是这个锁被独占，比如典型的synchronized；</p>
+<p>乐观锁是指操作并不加锁，而是抱着尝试的心态去执行某项操作，如果操作失败或者操作冲突，那么就进入重试，一直到执行成功为止。</p>
+<a id="more"></a>
+<h3 id="2-原子性，指令有序性和线程可见性"><a href="#2-原子性，指令有序性和线程可见性" class="headerlink" title="2.原子性，指令有序性和线程可见性"></a>2.原子性，指令有序性和线程可见性</h3><p>这三个性质是多线程编程中核心的问题。</p>
+<p>原子性和事务的原子性一样，对于一个或多个操作，要么都执行，要么都不执行。指令有序性是指，在我们编写的代码中，<strong>上下两个互不关联的语句不会被指令重排序</strong>。</p>
+<p><strong>指令重排序</strong>是指处理器为了性能优化，在无关联的代码的执行是可能会和代码顺序不一致。比如说int i=1;int j=2;那么这两条语句的执行顺序可能会先执行int j=2；</p>
+<p><strong>线程可见性</strong>是指一个线程修改了某个变量，其他线程马上能知道。</p>
+<h3 id="3-无锁算法"><a href="#3-无锁算法" class="headerlink" title="3.无锁算法"></a>3.无锁算法</h3><p>使用低层原子化的机器指令，保证并发情况下数据的完整性，典型的如CAS算法。</p>
+<h3 id="4-内存屏障"><a href="#4-内存屏障" class="headerlink" title="4.内存屏障"></a>4.内存屏障</h3><p>在《深入理解JVM》中解释：它确保指令重排序时不会把其后面的指令排到内存屏障之前的位置，也不会把前面的指令排到内存屏障之后；即在执行到内存屏障这句指令时，它前面的操作已经全部完成；它会强制对缓存的修改操作立即写入主存；如果是写操作，它会导致其他CPU中对应的缓存行无效。在使用volatile修饰的变量会产生内存屏障。</p>
+<h2 id="Java内存模型"><a href="#Java内存模型" class="headerlink" title="Java内存模型"></a>Java内存模型</h2><p><img src="/pic/1536022937215.png" alt="1536022937215"></p>
+<h3 id="1-解释："><a href="#1-解释：" class="headerlink" title="1.解释："></a>1.解释：</h3><p>每个线程会从主内存中读取操作，所有的变量都存储在主内存中，每个线程都需要从主内存中获得变量的值。</p>
+<p>然后如图可见，每个线程获得数据之后会放入自己的工作内存，这就是java内存模型的规定之二，保证每个线程操作的都是从主内存拷贝的副本，也就是说线程不能直接操作主内存中的变量，需要把主内存的变量值读取之后放入自己的工作内存中的变量副本中，然后操作这个副本。</p>
+<p>最后线程和线程之间无法直接访问对方工作内存中的变量。最后需要解释一下这个访问规则局限于对象实例字段，静态字段等，局部变量不包括在内，因为局部变量不存在竞争问题。</p>
+<h3 id="2-基本执行步骤："><a href="#2-基本执行步骤：" class="headerlink" title="2.基本执行步骤："></a>2.基本执行步骤：</h3><p>a.lock(锁定)：在某一个线程在读取主内存的时候需要把变量锁定</p>
+<p>b.unlock（解锁）：在某一个线程读取完变量值之后会释放锁定，别的线程就可以进入操作</p>
+<p>c.read（读取）：从主内存中读取变量的值并放入工作内存中</p>
+<p>d.load（加载）：从read操作中得到的值放入工作内存变量副本中</p>
+<p>e.use（使用）：把工作内存中的一个变量值传递给执行引擎</p>
+<p>f.assign（赋值）：它把一个从执行引擎接收到的值赋值给工作内存的变量</p>
+<p>g.store（存储）：把工作内存中的一个变量的值传送到主内存中</p>
+<p>h.write（写入）：把store操作从工作内存中的一个变量的值传送到主内存的变量中</p>
+<p><img src="/pic/1536023910091.png" alt="1536023910091"></p>
+<h2 id="volatile关键字"><a href="#volatile关键字" class="headerlink" title="volatile关键字"></a>volatile关键字</h2><p>在concurrentHashMap中，有很多成员变量都是用volatile修饰的，被volatile修饰的变量有如下特性：</p>
+<p>1.使得变量更新变得具有可见性，只有被volatile修饰的变量的赋值一旦变化就会通知到其他线程，如果其他线程的工作内存中存在这个变量的拷贝副本，那么其他线程就会放弃这个副本中变量的值，重新去主内存中获取</p>
+<p>2.产生了内存屏障，防止指令进行了重排序，关于这点的解释，见如下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">VolatileTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">int</span> a = <span class="number">0</span>;                 <span class="comment">//1</span></span><br><span class="line">    <span class="keyword">int</span> b = <span class="number">1</span>;                 <span class="comment">//2</span></span><br><span class="line">    <span class="keyword">volatile</span> <span class="keyword">int</span> c = <span class="number">2</span>;        <span class="comment">//3</span></span><br><span class="line">    <span class="keyword">int</span> d = <span class="number">3</span>;                 <span class="comment">//4</span></span><br><span class="line">    <span class="keyword">int</span> e = <span class="number">4</span>;                 <span class="comment">//5</span></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如上所示c变量是被volatile修饰的，那么就会被该段代码产生了一个内存屏障，可以保证在执行语句3的时候，语句1,2是绝对执行完毕的，语句4,5肯定没有执行。上述语句中虽然保证了语句3的执行顺序不可变换，但1,2；4,5语句有可能发生指令重排序。</p>
+<p>总结：volatile修饰的变量具有可见性和有序性</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">VolatileTest</span> </span>&#123;</span><br><span class="line"></span><br><span class="line"><span class="comment">//  int a = 0;                 //1</span></span><br><span class="line"><span class="comment">//  int b = 1;                 //2</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">volatile</span> <span class="keyword">int</span> c = <span class="number">0</span>;        <span class="comment">//3</span></span><br><span class="line"><span class="comment">//  int d = 3;                 //4</span></span><br><span class="line"><span class="comment">//  int e = 4;                 //5</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">increase</span><span class="params">()</span></span>&#123;</span><br><span class="line">        c++;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> InterruptedException </span>&#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++) &#123;</span><br><span class="line">            <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                    increase();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            ).start();</span><br><span class="line">        &#125;</span><br><span class="line">        Thread.sleep(<span class="number">5000</span>);</span><br><span class="line">        System.out.println(c);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">//运行3次结果分别是：997，995，989</span></span><br></pre></td></tr></table></figure>
+<p>这个就是典型的volatile操作与原子性的概念。执行结果是小于等于1000的，为什么会这样呢？不是说volatile修饰的变量是具有原子性的么？是的，volatile修饰的变量的确具有原子性，也就是c是具有原子性的（直接赋值是原子性的），但是c++不具有原子性，c++其实就是c = c +1，已经存在了多步操作。所以c具有原子性，但是c++这个操作不具有原子性。</p>
+<p>根据前面介绍的java内存模型，当有一个线程去读取主内存的过程中获取c的值，并拷贝一份放入自己的工作内存中，在对c进行+1操作的时候线程阻塞了（各种阻塞情况），那么这个时候有别的线程进入读取c的值，因为有一个线程阻塞就导致该线程无法体现出可见性，导致别的线程的工作内存不会失效，那么它还是从主内存中读取c的值，也会正常的+1操作。如此便导致了结果是小于等于1000的。</p>
+<p><strong>注意</strong>，这里笔者也有个没有深刻理解的问题，首先在java内存模型中规定了：在对主内存的unlock操作之前必须要执行write操作，那意思就是c在写回之前别的线程是无法读取c的。然而结果却并非如此。如果哪位朋友能理解其中的原委，请与我联系，大家一起讨论研究。</p>
+<h2 id="CAS算法"><a href="#CAS算法" class="headerlink" title="CAS算法"></a>CAS算法</h2><p>CAS的全称叫“Compare And Swap”，也就是比较与交换，他主要的操作思想是：</p>
+<p>首先它具有三个操作数，内存位置V，预期值A和新值B，如果在执行过程中，发现内存中的值V与预期值A相匹配，那么他会将V更新为新值A。如果预期值A和内存中的值V不相匹配，那么处理器就不会执行任何操作。CAS算法就是技术点中说的“无锁定算法”，因为线程不必再等待锁定，只要执行CAS操作就可以，会在预期中完成。</p>
+<h1 id="如何实现线程安全："><a href="#如何实现线程安全：" class="headerlink" title="如何实现线程安全："></a><strong>如何实现线程安全：</strong></h1><p>我们都知道ConcurrentHashMap核心是线程安全的，那么它又是用什么来实现线程安全的呢？在jdk1.8中主要是采用了CAS算法实现线程安全的。在上一篇博文中已经介绍了CAS的无锁操作，这里不再赘述。同时它通过CAS算法又实现了3种原子操作（线程安全的保障就是操作具有原子性），下面我赋值了源码分别表示哪些成员变量采用了CAS算法，然后又是哪些方法实现了操作的原子性:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br></pre></td><td class="code"><pre><span class="line"> <span class="comment">// Unsafe mechanics  CAS保障了哪些成员变量操作是原子性的</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> sun.misc.Unsafe U;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> LOCKSTATE;</span><br><span class="line">      <span class="keyword">static</span> &#123;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                U = sun.misc.Unsafe.getUnsafe();</span><br><span class="line">                Class&lt;?&gt; k = TreeBin.class; <span class="comment">//操作TreeBin,后面会介绍这个类</span></span><br><span class="line">                LOCKSTATE = U.objectFieldOffset</span><br><span class="line">                    (k.getDeclaredField(<span class="string">"lockState"</span>));</span><br><span class="line">            &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> Error(e);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">--------------------------------------------------------------------------------------</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> sun.misc.Unsafe U;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> SIZECTL;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> TRANSFERINDEX;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> BASECOUNT;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> CELLSBUSY;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> CELLVALUE;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">long</span> ABASE;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> ASHIFT;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="comment">//以下变量会在下面介绍到</span></span><br><span class="line">            U = sun.misc.Unsafe.getUnsafe();</span><br><span class="line">            Class&lt;?&gt; k = ConcurrentHashMap.class;</span><br><span class="line">            SIZECTL = U.objectFieldOffset</span><br><span class="line">                (k.getDeclaredField(<span class="string">"sizeCtl"</span>));</span><br><span class="line">            TRANSFERINDEX = U.objectFieldOffset</span><br><span class="line">                (k.getDeclaredField(<span class="string">"transferIndex"</span>));</span><br><span class="line">            BASECOUNT = U.objectFieldOffset</span><br><span class="line">                (k.getDeclaredField(<span class="string">"baseCount"</span>));</span><br><span class="line">            CELLSBUSY = U.objectFieldOffset</span><br><span class="line">                (k.getDeclaredField(<span class="string">"cellsBusy"</span>));</span><br><span class="line">            Class&lt;?&gt; ck = CounterCell.class;</span><br><span class="line">            CELLVALUE = U.objectFieldOffset</span><br><span class="line">                (ck.getDeclaredField(<span class="string">"value"</span>));</span><br><span class="line">            Class&lt;?&gt; ak = Node[].class;</span><br><span class="line">            ABASE = U.arrayBaseOffset(ak);</span><br><span class="line">            <span class="keyword">int</span> scale = U.arrayIndexScale(ak);</span><br><span class="line">            <span class="keyword">if</span> ((scale &amp; (scale - <span class="number">1</span>)) != <span class="number">0</span>)</span><br><span class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">"data type scale not a power of two"</span>);</span><br><span class="line">            ASHIFT = <span class="number">31</span> - Integer.numberOfLeadingZeros(scale);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> Error(e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="comment">//3个原子性操作方法：</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/* ---------------- Table element access -------------- */</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">/*</span></span><br><span class="line"><span class="comment">     * Volatile access methods are used for table elements as well as</span></span><br><span class="line"><span class="comment">     * elements of in-progress next table while resizing.  All uses of</span></span><br><span class="line"><span class="comment">     * the tab arguments must be null checked by callers.  All callers</span></span><br><span class="line"><span class="comment">     * also paranoically precheck that tab's length is not zero (or an</span></span><br><span class="line"><span class="comment">     * equivalent check), thus ensuring that any index argument taking</span></span><br><span class="line"><span class="comment">     * the form of a hash value anded with (length - 1) is a valid</span></span><br><span class="line"><span class="comment">     * index.  Note that, to be correct wrt arbitrary concurrency</span></span><br><span class="line"><span class="comment">     * errors by users, these checks must operate on local variables,</span></span><br><span class="line"><span class="comment">     * which accounts for some odd-looking inline assignments below.</span></span><br><span class="line"><span class="comment">     * Note that calls to setTabAt always occur within locked regions,</span></span><br><span class="line"><span class="comment">     * and so in principle require only release ordering, not</span></span><br><span class="line"><span class="comment">     * full volatile semantics, but are currently coded as volatile</span></span><br><span class="line"><span class="comment">     * writes to be conservative.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line"></span><br><span class="line">    <span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> &lt;K,V&gt; <span class="function">Node&lt;K,V&gt; <span class="title">tabAt</span><span class="params">(Node&lt;K,V&gt;[] tab, <span class="keyword">int</span> i)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> (Node&lt;K,V&gt;)U.getObjectVolatile(tab, ((<span class="keyword">long</span>)i &lt;&lt; ASHIFT) + ABASE);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> &lt;K,V&gt; <span class="function"><span class="keyword">boolean</span> <span class="title">casTabAt</span><span class="params">(Node&lt;K,V&gt;[] tab, <span class="keyword">int</span> i,</span></span></span><br><span class="line"><span class="function"><span class="params">                                        Node&lt;K,V&gt; c, Node&lt;K,V&gt; v)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> U.compareAndSwapObject(tab, ((<span class="keyword">long</span>)i &lt;&lt; ASHIFT) + ABASE, c, v);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> &lt;K,V&gt; <span class="function"><span class="keyword">void</span> <span class="title">setTabAt</span><span class="params">(Node&lt;K,V&gt;[] tab, <span class="keyword">int</span> i, Node&lt;K,V&gt; v)</span> </span>&#123;</span><br><span class="line">        U.putObjectVolatile(tab, ((<span class="keyword">long</span>)i &lt;&lt; ASHIFT) + ABASE, v);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+<p>以上这些基本实现了线程安全，还有一点是jdk1.8优化的结果，在以前的ConcurrentHashMap中是锁定了Segment，而在jdk1.8被移除，现在锁定的是一个Node头节点（注意，synchronized锁定的是头结点，这一点从下面的源码中就可以看出来），减小了锁的粒度，性能和冲突都会减少，以下是源码中的体现：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//这段代码其实是在扩容阶段对头节点的锁定，其实还有很多地方不一一列举。</span></span><br><span class="line">               <span class="keyword">synchronized</span> (f) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (tabAt(tab, i) == f) &#123;</span><br><span class="line">                        Node&lt;K,V&gt; ln, hn;</span><br><span class="line">                        <span class="keyword">if</span> (fh &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">                            <span class="keyword">int</span> runBit = fh &amp; n;</span><br><span class="line">                            Node&lt;K,V&gt; lastRun = f;</span><br><span class="line">                            <span class="keyword">for</span> (Node&lt;K,V&gt; p = f.next; p != <span class="keyword">null</span>; p = p.next) &#123;</span><br><span class="line">                                <span class="keyword">int</span> b = p.hash &amp; n;</span><br><span class="line">                                <span class="keyword">if</span> (b != runBit) &#123;</span><br><span class="line">                                    runBit = b;</span><br><span class="line">                                    lastRun = p;</span><br><span class="line">                                &#125;</span><br><span class="line">                            &#125;</span><br><span class="line">                            <span class="keyword">if</span> (runBit == <span class="number">0</span>) &#123;</span><br><span class="line">                                ln = lastRun;</span><br><span class="line">                                hn = <span class="keyword">null</span>;</span><br><span class="line">                            &#125;</span><br><span class="line">                            <span class="keyword">else</span> &#123;</span><br><span class="line">                                hn = lastRun;</span><br><span class="line">                                ln = <span class="keyword">null</span>;</span><br><span class="line">                            &#125;</span><br><span class="line">                            <span class="keyword">for</span> (Node&lt;K,V&gt; p = f; p != lastRun; p = p.next) &#123;</span><br><span class="line">                                <span class="keyword">int</span> ph = p.hash; K pk = p.key; V pv = p.val;</span><br><span class="line">                                <span class="keyword">if</span> ((ph &amp; n) == <span class="number">0</span>)</span><br><span class="line">                                    ln = <span class="keyword">new</span> Node&lt;K,V&gt;(ph, pk, pv, ln);</span><br><span class="line">                                <span class="keyword">else</span></span><br><span class="line">                                    hn = <span class="keyword">new</span> Node&lt;K,V&gt;(ph, pk, pv, hn);</span><br><span class="line">                            &#125;</span><br><span class="line">                            setTabAt(nextTab, i, ln);</span><br><span class="line">                            setTabAt(nextTab, i + n, hn);</span><br><span class="line">                            setTabAt(tab, i, fwd);</span><br><span class="line">                            advance = <span class="keyword">true</span>;</span><br><span class="line">                        &#125;</span><br><span class="line">                        <span class="keyword">else</span> <span class="keyword">if</span> (f <span class="keyword">instanceof</span> TreeBin) &#123;</span><br><span class="line">                        .....</span><br><span class="line">                   &#125;</span><br><span class="line">                &#125;</span><br></pre></td></tr></table></figure>
+<h2 id="如何存储数据："><a href="#如何存储数据：" class="headerlink" title="如何存储数据："></a><strong>如何存储数据：</strong></h2><p>知道了ConcurrentHashMap是如何实现线程安全的同时，最起码我们还要知道ConcurrentHashMap又是怎么实现数据存储的。以下是存储的图： </p>
+<p><img src="/pic/1536648927992.png" alt="1536648927992"></p>
+<p>有人看了之后会想，这个不是HashMap的存储结构么？在jdk1.8中取消了segment，所以结构其实和HashMap是极其相似的，在HashMap的基础上实现了线程安全，同时在每一个“桶”中的节点会被锁定。</p>
+<h3 id="重要的成员变量："><a href="#重要的成员变量：" class="headerlink" title="重要的成员变量："></a><strong>重要的成员变量</strong>：</h3><h4 id="1、capacity："><a href="#1、capacity：" class="headerlink" title="1、capacity："></a>1、capacity：</h4><p>容量，表示目前map的存储大小，在源码中分为默认和最大，默认是在没有指定容量大小的时候会赋予这个值，最大表示当容量达到这个值时，不再支持扩容。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * The largest possible table capacity.  This value must be</span></span><br><span class="line"><span class="comment"> * exactly 1&lt;&lt;30 to stay within Java array allocation and indexing</span></span><br><span class="line"><span class="comment"> * bounds for power of two table sizes, and is further required</span></span><br><span class="line"><span class="comment"> * because the top two bits of 32bit hash fields are used for</span></span><br><span class="line"><span class="comment"> * control purposes.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> MAXIMUM_CAPACITY = <span class="number">1</span> &lt;&lt; <span class="number">30</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * The default initial table capacity.  Must be a power of 2</span></span><br><span class="line"><span class="comment"> * (i.e., at least 1) and at most MAXIMUM_CAPACITY.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> DEFAULT_CAPACITY = <span class="number">16</span>;</span><br></pre></td></tr></table></figure>
+<h4 id="2、laodfactor："><a href="#2、laodfactor：" class="headerlink" title="2、laodfactor："></a>2、laodfactor：</h4><p>加载因子，这个和HashMap是一样的，默认值也是0.75f。有不清楚的可以去寻找上篇介绍HashMap的博文。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * The load factor for this table. Overrides of this value in</span></span><br><span class="line"><span class="comment"> * constructors affect only the initial table capacity.  The</span></span><br><span class="line"><span class="comment"> * actual floating point value isn't normally used -- it is</span></span><br><span class="line"><span class="comment"> * simpler to use expressions such as &#123;<span class="doctag">@code</span> n - (n &gt;&gt;&gt; 2)&#125; for</span></span><br><span class="line"><span class="comment"> * the associated resizing threshold.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">float</span> LOAD_FACTOR = <span class="number">0.75f</span>;</span><br></pre></td></tr></table></figure>
+<h4 id="3、TREEIFY-THRESHOLD与UNTREEIFY-THRESHOLD："><a href="#3、TREEIFY-THRESHOLD与UNTREEIFY-THRESHOLD：" class="headerlink" title="3、TREEIFY_THRESHOLD与UNTREEIFY_THRESHOLD："></a>3、TREEIFY_THRESHOLD与UNTREEIFY_THRESHOLD：</h4><p>作为了解，这个两个主要是控制链表和红黑树转化的，前者表示大于这个值，需要把链表转换为红黑树，后者表示如果红黑树的节点小于这个值需要重新转化为链表。关于为什么要把链表转化为红黑树，在HashMap的介绍中，我已经详细解释过了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * The bin count threshold for using a tree rather than list for a</span></span><br><span class="line"><span class="comment"> * bin.  Bins are converted to trees when adding an element to a</span></span><br><span class="line"><span class="comment"> * bin with at least this many nodes. The value must be greater</span></span><br><span class="line"><span class="comment"> * than 2, and should be at least 8 to mesh with assumptions in</span></span><br><span class="line"><span class="comment"> * tree removal about conversion back to plain bins upon</span></span><br><span class="line"><span class="comment"> * shrinkage.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> TREEIFY_THRESHOLD = <span class="number">8</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * The bin count threshold for untreeifying a (split) bin during a</span></span><br><span class="line"><span class="comment"> * resize operation. Should be less than TREEIFY_THRESHOLD, and at</span></span><br><span class="line"><span class="comment"> * most 6 to mesh with shrinkage detection under removal.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> UNTREEIFY_THRESHOLD = <span class="number">6</span>;</span><br></pre></td></tr></table></figure>
+<p>4、下面3个参数作为了解，主要是在扩容和参与扩容（当线程进入put的时候，发现该map正在扩容，那么它会协助扩容）的时候使用，在下一篇博文中会简单介绍到。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * The number of bits used for generation stamp in sizeCtl.</span></span><br><span class="line"><span class="comment"> * Must be at least 6 for 32bit arrays.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> RESIZE_STAMP_BITS = <span class="number">16</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * The maximum number of threads that can help resize.</span></span><br><span class="line"><span class="comment"> * Must fit in 32 - RESIZE_STAMP_BITS bits.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> MAX_RESIZERS = (<span class="number">1</span> &lt;&lt; (<span class="number">32</span> - RESIZE_STAMP_BITS)) - <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * The bit shift for recording size stamp in sizeCtl.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> RESIZE_STAMP_SHIFT = <span class="number">32</span> - RESIZE_STAMP_BITS;</span><br></pre></td></tr></table></figure>
+<p>5、下面2个字段比较重要，是线程判断map当前处于什么阶段。MOVED表示该节点是个forwarding Node，表示有线程处理过了。后者表示判断到这个节点是一个树节点。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> MOVED     = -<span class="number">1</span>; <span class="comment">// hash for forwarding nodes</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">int</span> TREEBIN   = -<span class="number">2</span>; <span class="comment">// hash for roots of trees12</span></span><br></pre></td></tr></table></figure>
+<p>6、sizeCtl，标志控制符。这个参数非常重要，出现在ConcurrentHashMap的各个阶段，不同的值也表示不同情况和不同功能：<br>①负数代表正在进行初始化或扩容操作<br>②-N 表示有N-1个线程正在进行扩容操作 （前面已经说过了，当线程进行值添加的时候判断到正在扩容，它就会协助扩容）<br>③正数或0代表hash表还没有被初始化，这个数值表示初始化或下一次进行扩容的大小，类似于扩容阈值。它的值始终是当前ConcurrentHashMap容量的0.75倍，这与loadfactor是对应的。实际容量&gt;=sizeCtl，则扩容。</p>
+<p>注意：在某些情况下，这个值就相当于HashMap中的threshold阀值。用于控制扩容。</p>
+<h3 id="极其重要的几个内部类："><a href="#极其重要的几个内部类：" class="headerlink" title="极其重要的几个内部类："></a><strong>极其重要的几个内部类：</strong></h3><p>如果要理解ConcurrentHashMap的底层，必须要了解它相关联的一些内部类。</p>
+<h4 id="1、Node"><a href="#1、Node" class="headerlink" title="1、Node"></a>1、Node</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Key-value entry.  This class is never exported out as a</span></span><br><span class="line"><span class="comment"> * user-mutable Map.Entry (i.e., one supporting setValue; see</span></span><br><span class="line"><span class="comment"> * MapEntry below), but can be used for read-only traversals used</span></span><br><span class="line"><span class="comment"> * in bulk tasks.  Subclasses of Node with a negative hash field</span></span><br><span class="line"><span class="comment"> * are special, and contain null keys and values (but are never</span></span><br><span class="line"><span class="comment"> * exported).  Otherwise, keys and vals are never null.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">Node</span>&lt;<span class="title">K</span>,<span class="title">V</span>&gt; <span class="keyword">implements</span> <span class="title">Map</span>.<span class="title">Entry</span>&lt;<span class="title">K</span>,<span class="title">V</span>&gt; </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> <span class="keyword">int</span> hash;</span><br><span class="line">    <span class="keyword">final</span> K key;</span><br><span class="line">    <span class="keyword">volatile</span> V val;  <span class="comment">//用volatile修饰</span></span><br><span class="line">    <span class="keyword">volatile</span> Node&lt;K,V&gt; next;<span class="comment">//用volatile修饰</span></span><br><span class="line"></span><br><span class="line">    Node(<span class="keyword">int</span> hash, K key, V val, Node&lt;K,V&gt; next) &#123;</span><br><span class="line">        <span class="keyword">this</span>.hash = hash;</span><br><span class="line">        <span class="keyword">this</span>.key = key;</span><br><span class="line">        <span class="keyword">this</span>.val = val;</span><br><span class="line">        <span class="keyword">this</span>.next = next;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> K <span class="title">getKey</span><span class="params">()</span>       </span>&#123; <span class="keyword">return</span> key; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> V <span class="title">getValue</span><span class="params">()</span>     </span>&#123; <span class="keyword">return</span> val; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">int</span> <span class="title">hashCode</span><span class="params">()</span>   </span>&#123; <span class="keyword">return</span> key.hashCode() ^ val.hashCode(); &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> String <span class="title">toString</span><span class="params">()</span></span>&#123; <span class="keyword">return</span> key + <span class="string">"="</span> + val; &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> V <span class="title">setValue</span><span class="params">(V value)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> UnsupportedOperationException();  <span class="comment">//不可以直接setValue</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">boolean</span> <span class="title">equals</span><span class="params">(Object o)</span> </span>&#123;</span><br><span class="line">        Object k, v, u; Map.Entry&lt;?,?&gt; e;</span><br><span class="line">        <span class="keyword">return</span> ((o <span class="keyword">instanceof</span> Map.Entry) &amp;&amp;</span><br><span class="line">                (k = (e = (Map.Entry&lt;?,?&gt;)o).getKey()) != <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">                (v = e.getValue()) != <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">                (k == key || k.equals(key)) &amp;&amp;</span><br><span class="line">                (v == (u = val) || v.equals(u)));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Virtualized support for map.get(); overridden in subclasses.</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function">Node&lt;K,V&gt; <span class="title">find</span><span class="params">(<span class="keyword">int</span> h, Object k)</span> </span>&#123;</span><br><span class="line">        Node&lt;K,V&gt; e = <span class="keyword">this</span>;</span><br><span class="line">        <span class="keyword">if</span> (k != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">do</span> &#123;</span><br><span class="line">                K ek;</span><br><span class="line">                <span class="keyword">if</span> (e.hash == h &amp;&amp;</span><br><span class="line">                    ((ek = e.key) == k || (ek != <span class="keyword">null</span> &amp;&amp; k.equals(ek))))</span><br><span class="line">                    <span class="keyword">return</span> e;</span><br><span class="line">            &#125; <span class="keyword">while</span> ((e = e.next) != <span class="keyword">null</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从上面的Node内部类源码可以看出，它的value 和 next是用volatile修饰的，关于volatile已经在前面一篇博文介绍过，使得value和next具有可见性和有序性，从而保证线程安全。同时大家仔细看过代码就会发现setValue（）方法访问是会抛出异常，是禁止用该方法直接设置value值的。同时它还错了一个find的方法，该方法主要是用户寻找某一个节点。</p>
+<h4 id="2、TreeNode和TreeBin"><a href="#2、TreeNode和TreeBin" class="headerlink" title="2、TreeNode和TreeBin"></a>2、TreeNode和TreeBin</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br></pre></td><td class="code"><pre><span class="line"> <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * Nodes for use in TreeBins</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">static</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">TreeNode</span>&lt;<span class="title">K</span>,<span class="title">V</span>&gt; <span class="keyword">extends</span> <span class="title">Node</span>&lt;<span class="title">K</span>,<span class="title">V</span>&gt; </span>&#123;</span><br><span class="line">        TreeNode&lt;K,V&gt; parent;  <span class="comment">// red-black tree links</span></span><br><span class="line">        TreeNode&lt;K,V&gt; left;</span><br><span class="line">        TreeNode&lt;K,V&gt; right;</span><br><span class="line">        TreeNode&lt;K,V&gt; prev;    <span class="comment">// needed to unlink next upon deletion</span></span><br><span class="line">        <span class="keyword">boolean</span> red;</span><br><span class="line"></span><br><span class="line">        TreeNode(<span class="keyword">int</span> hash, K key, V val, Node&lt;K,V&gt; next,</span><br><span class="line">                 TreeNode&lt;K,V&gt; parent) &#123;</span><br><span class="line">            <span class="keyword">super</span>(hash, key, val, next);</span><br><span class="line">            <span class="keyword">this</span>.parent = parent;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="function">Node&lt;K,V&gt; <span class="title">find</span><span class="params">(<span class="keyword">int</span> h, Object k)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">return</span> findTreeNode(h, k, <span class="keyword">null</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">/**</span></span><br><span class="line"><span class="comment">         * Returns the TreeNode (or null if not found) for the given key</span></span><br><span class="line"><span class="comment">         * starting at given root.</span></span><br><span class="line"><span class="comment">         */</span></span><br><span class="line">        <span class="function"><span class="keyword">final</span> TreeNode&lt;K,V&gt; <span class="title">findTreeNode</span><span class="params">(<span class="keyword">int</span> h, Object k, Class&lt;?&gt; kc)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">if</span> (k != <span class="keyword">null</span>) &#123;</span><br><span class="line">                TreeNode&lt;K,V&gt; p = <span class="keyword">this</span>;</span><br><span class="line">                <span class="keyword">do</span>  &#123;</span><br><span class="line">                    <span class="keyword">int</span> ph, dir; K pk; TreeNode&lt;K,V&gt; q;</span><br><span class="line">                    TreeNode&lt;K,V&gt; pl = p.left, pr = p.right;</span><br><span class="line">                    <span class="keyword">if</span> ((ph = p.hash) &gt; h)</span><br><span class="line">                        p = pl;</span><br><span class="line">                    <span class="keyword">else</span> <span class="keyword">if</span> (ph &lt; h)</span><br><span class="line">                        p = pr;</span><br><span class="line">                    <span class="keyword">else</span> <span class="keyword">if</span> ((pk = p.key) == k || (pk != <span class="keyword">null</span> &amp;&amp; k.equals(pk)))</span><br><span class="line">                        <span class="keyword">return</span> p;</span><br><span class="line">                    <span class="keyword">else</span> <span class="keyword">if</span> (pl == <span class="keyword">null</span>)</span><br><span class="line">                        p = pr;</span><br><span class="line">                    <span class="keyword">else</span> <span class="keyword">if</span> (pr == <span class="keyword">null</span>)</span><br><span class="line">                        p = pl;</span><br><span class="line">                    <span class="keyword">else</span> <span class="keyword">if</span> ((kc != <span class="keyword">null</span> ||</span><br><span class="line">                              (kc = comparableClassFor(k)) != <span class="keyword">null</span>) &amp;&amp;</span><br><span class="line">                             (dir = compareComparables(kc, k, pk)) != <span class="number">0</span>)</span><br><span class="line">                        p = (dir &lt; <span class="number">0</span>) ? pl : pr;</span><br><span class="line">                    <span class="keyword">else</span> <span class="keyword">if</span> ((q = pr.findTreeNode(h, k, kc)) != <span class="keyword">null</span>)</span><br><span class="line">                        <span class="keyword">return</span> q;</span><br><span class="line">                    <span class="keyword">else</span></span><br><span class="line">                        p = pl;</span><br><span class="line">                &#125; <span class="keyword">while</span> (p != <span class="keyword">null</span>);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">//TreeBin太长，笔者截取了它的构造方法：</span></span><br><span class="line"></span><br><span class="line"> TreeBin(TreeNode&lt;K,V&gt; b) &#123;</span><br><span class="line">            <span class="keyword">super</span>(TREEBIN, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>);</span><br><span class="line">            <span class="keyword">this</span>.first = b;</span><br><span class="line">            TreeNode&lt;K,V&gt; r = <span class="keyword">null</span>;</span><br><span class="line">            <span class="keyword">for</span> (TreeNode&lt;K,V&gt; x = b, next; x != <span class="keyword">null</span>; x = next) &#123;</span><br><span class="line">                next = (TreeNode&lt;K,V&gt;)x.next;</span><br><span class="line">                x.left = x.right = <span class="keyword">null</span>;</span><br><span class="line">                <span class="keyword">if</span> (r == <span class="keyword">null</span>) &#123;</span><br><span class="line">                    x.parent = <span class="keyword">null</span>;</span><br><span class="line">                    x.red = <span class="keyword">false</span>;</span><br><span class="line">                    r = x;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">else</span> &#123;</span><br><span class="line">                    K k = x.key;</span><br><span class="line">                    <span class="keyword">int</span> h = x.hash;</span><br><span class="line">                    Class&lt;?&gt; kc = <span class="keyword">null</span>;</span><br><span class="line">                    <span class="keyword">for</span> (TreeNode&lt;K,V&gt; p = r;;) &#123;</span><br><span class="line">                        <span class="keyword">int</span> dir, ph;</span><br><span class="line">                        K pk = p.key;</span><br><span class="line">                        <span class="keyword">if</span> ((ph = p.hash) &gt; h)</span><br><span class="line">                            dir = -<span class="number">1</span>;</span><br><span class="line">                        <span class="keyword">else</span> <span class="keyword">if</span> (ph &lt; h)</span><br><span class="line">                            dir = <span class="number">1</span>;</span><br><span class="line">                        <span class="keyword">else</span> <span class="keyword">if</span> ((kc == <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">                                  (kc = comparableClassFor(k)) == <span class="keyword">null</span>) ||</span><br><span class="line">                                 (dir = compareComparables(kc, k, pk)) == <span class="number">0</span>)</span><br><span class="line">                            dir = tieBreakOrder(k, pk);</span><br><span class="line">                            TreeNode&lt;K,V&gt; xp = p;</span><br><span class="line">                        <span class="keyword">if</span> ((p = (dir &lt;= <span class="number">0</span>) ? p.left : p.right) == <span class="keyword">null</span>) &#123;</span><br><span class="line">                            x.parent = xp;</span><br><span class="line">                            <span class="keyword">if</span> (dir &lt;= <span class="number">0</span>)</span><br><span class="line">                                xp.left = x;</span><br><span class="line">                            <span class="keyword">else</span></span><br><span class="line">                                xp.right = x;</span><br><span class="line">                            r = balanceInsertion(r, x);</span><br><span class="line">                            <span class="keyword">break</span>;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">this</span>.root = r;</span><br><span class="line">            <span class="function"><span class="keyword">assert</span> <span class="title">checkInvariants</span><span class="params">(root)</span></span>;</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+<p>从上面的源码可以看出，在ConcurrentHashMap中不是直接存储TreeNode来实现的，而是用TreeBin来包装TreeNode来实现的。也就是说在实际的ConcurrentHashMap桶中，存放的是TreeBin对象，而不是TreeNode对象。之所以TreeNode继承自Node是为了附带next指针，而这个next指针可以在TreeBin中寻找下一个TreeNode，这里也是与HashMap之间比较大的区别。</p>
+<h4 id="3、ForwordingNode"><a href="#3、ForwordingNode" class="headerlink" title="3、ForwordingNode"></a>3、ForwordingNode</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * A node inserted at head of bins during transfer operations.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">final</span> <span class="class"><span class="keyword">class</span> <span class="title">ForwardingNode</span>&lt;<span class="title">K</span>,<span class="title">V</span>&gt; <span class="keyword">extends</span> <span class="title">Node</span>&lt;<span class="title">K</span>,<span class="title">V</span>&gt; </span>&#123;</span><br><span class="line">    <span class="keyword">final</span> Node&lt;K,V&gt;[] nextTable;</span><br><span class="line">    ForwardingNode(Node&lt;K,V&gt;[] tab) &#123;</span><br><span class="line">        <span class="keyword">super</span>(MOVED, <span class="keyword">null</span>, <span class="keyword">null</span>, <span class="keyword">null</span>);</span><br><span class="line">        <span class="keyword">this</span>.nextTable = tab;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function">Node&lt;K,V&gt; <span class="title">find</span><span class="params">(<span class="keyword">int</span> h, Object k)</span> </span>&#123;</span><br><span class="line">        <span class="comment">// loop to avoid arbitrarily deep recursion on forwarding nodes</span></span><br><span class="line">        outer: <span class="keyword">for</span> (Node&lt;K,V&gt;[] tab = nextTable;;) &#123;</span><br><span class="line">            Node&lt;K,V&gt; e; <span class="keyword">int</span> n;</span><br><span class="line">            <span class="keyword">if</span> (k == <span class="keyword">null</span> || tab == <span class="keyword">null</span> || (n = tab.length) == <span class="number">0</span> ||</span><br><span class="line">                (e = tabAt(tab, (n - <span class="number">1</span>) &amp; h)) == <span class="keyword">null</span>)</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">            <span class="keyword">for</span> (;;) &#123;</span><br><span class="line">                <span class="keyword">int</span> eh; K ek;</span><br><span class="line">                <span class="keyword">if</span> ((eh = e.hash) == h &amp;&amp;</span><br><span class="line">                    ((ek = e.key) == k || (ek != <span class="keyword">null</span> &amp;&amp; k.equals(ek))))</span><br><span class="line">                    <span class="keyword">return</span> e;</span><br><span class="line">                <span class="keyword">if</span> (eh &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (e <span class="keyword">instanceof</span> ForwardingNode) &#123;</span><br><span class="line">                        tab = ((ForwardingNode&lt;K,V&gt;)e).nextTable;</span><br><span class="line">                        <span class="keyword">continue</span> outer;</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="keyword">else</span></span><br><span class="line">                        <span class="keyword">return</span> e.find(h, k);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> ((e = e.next) == <span class="keyword">null</span>)</span><br><span class="line">                    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这个静态内部内就显得独具匠心，它的使用主要是在扩容阶段，它是链接两个table的节点类，有一个next属性用于指向下一个table，注意要理解这个table，它并不是说有2个table，而是在扩容的时候当线程读取到这个地方发现这个地方为空，这会设置为forwordingNode，或者线程处理完该节点也会设置该节点为forwordingNode，别的线程发现这个forwordingNode会继续向后执行遍历，这样一来就很好的解决了多线程安全的问题。这里有小伙伴就会问，那一个线程开始处理这个节点还没处理完，别的线程进来怎么办，而且这个节点还不是forwordingNode呐？说明你前面没看详细，在处理某个节点（桶里面第一个节点）的时候会对该节点上锁，上面文章中我已经说过了。</p>
+<p>认识阶段就写到这里，对这些东西有一定的了解，在下一篇，也就是尾篇中，我会逐字逐句来介绍transfer（）扩容，put（）添加和get（）查询三个方法。</p>
+<h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><h3 id="transfer方法（扩容方法）"><a href="#transfer方法（扩容方法）" class="headerlink" title="transfer方法（扩容方法）"></a><strong>transfer方法（扩容方法）</strong></h3><p>再这之前，我大致描述一下扩容的过程：首先<strong>有且只能</strong>由一个线程构建一个nextTable，这个nextTable主要是扩容后的数组（容量已经扩大），然后把原table复制到nextTable中，这个过程可以多线程共同操作。但是一定要清楚，这个复制并不是简单的把原table的数据直接移动到nextTable中，而是需要有一定的规律和算法操控的（不然怎么把树转化为链表呢）。</p>
+<p>再这之前，先简单说下复制的过程：<br>数组中（桶中）总共分为3种存储情况：空，链表头，TreeBin头<br>①遍历原来的数组（原table），如果数组中某个值为空，则直接放置一个forwordingNode（上篇博文介绍过）。<br>②如果数组中某个值不为空，而是一个链表头结点，那么就对这个链表进行拆分为两个链表，存储到nextTable对应的两个位置。<br>③如果数组中某个值不为空，而是一个TreeBin头结点，那么这个地方就存储的是红黑树的结构，这样一来，处理就会变得相对比较复杂，就需要先判断需不需要把树转换为链表，做完一系列的处理，然后把对应的结果存储在nextTable的对应两个位置。</p>
+<p>在上一篇博文中介绍过，多个线程进行扩容操作的时候，会判断原table的值，如果这个值是forwordingNode就表示这个节点被处理过了，就直接继续往下找。接下来，我们针对源码逐字逐句介绍：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Moves and/or copies the nodes in each bin to new table. See</span></span><br><span class="line"><span class="comment"> * above for explanation.</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">transfer</span><span class="params">(Node&lt;K,V&gt;[] tab, Node&lt;K,V&gt;[] nextTab)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">int</span> n = tab.length, stride; <span class="comment">//stride 主要和CPU相关</span></span><br><span class="line">    <span class="comment">//主要是判断CPU处理的量，如果小于16则直接赋值16</span></span><br><span class="line">    <span class="keyword">if</span> ((stride = (NCPU &gt; <span class="number">1</span>) ? (n &gt;&gt;&gt; <span class="number">3</span>) / NCPU : n) &lt; MIN_TRANSFER_STRIDE)</span><br><span class="line">        stride = MIN_TRANSFER_STRIDE; <span class="comment">// subdivide range</span></span><br><span class="line">    <span class="keyword">if</span> (nextTab == <span class="keyword">null</span>) &#123;            <span class="comment">// initiating只能有一个线程进行构造nextTable，如果别的线程进入发现不为空就不用构造nextTable了</span></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</span><br><span class="line">            Node&lt;K,V&gt;[] nt = (Node&lt;K,V&gt;[])<span class="keyword">new</span> Node&lt;?,?&gt;[n &lt;&lt; <span class="number">1</span>]; <span class="comment">//把新的数组变为原来的两倍，这里的n&lt;&lt;1就是向左移动一位，也就是乘以二。</span></span><br><span class="line">            nextTab = nt;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable ex) &#123;      <span class="comment">// try to cope with OOME</span></span><br><span class="line">            sizeCtl = Integer.MAX_VALUE;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        nextTable = nextTab;</span><br><span class="line">        transferIndex = n; <span class="comment">//原先扩容大小</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> nextn = nextTab.length;</span><br><span class="line">    <span class="comment">//构造一个ForwardingNode用于多线程之间的共同扩容情况</span></span><br><span class="line">    ForwardingNode&lt;K,V&gt; fwd = <span class="keyword">new</span> ForwardingNode&lt;K,V&gt;(nextTab);</span><br><span class="line">    <span class="keyword">boolean</span> advance = <span class="keyword">true</span>; <span class="comment">//遍历的确认标志</span></span><br><span class="line">    <span class="keyword">boolean</span> finishing = <span class="keyword">false</span>; <span class="comment">// to ensure sweep before committing nextTab</span></span><br><span class="line">    <span class="comment">//遍历每个节点</span></span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>, bound = <span class="number">0</span>;;) &#123;</span><br><span class="line">        Node&lt;K,V&gt; f; <span class="keyword">int</span> fh; <span class="comment">//定义一个节点和一个节点状态判断标志fh</span></span><br><span class="line">        <span class="keyword">while</span> (advance) &#123;</span><br><span class="line">            <span class="keyword">int</span> nextIndex, nextBound;</span><br><span class="line">            <span class="keyword">if</span> (--i &gt;= bound || finishing)</span><br><span class="line">                advance = <span class="keyword">false</span>;</span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> ((nextIndex = transferIndex) &lt;= <span class="number">0</span>) &#123;</span><br><span class="line">                i = -<span class="number">1</span>;</span><br><span class="line">                advance = <span class="keyword">false</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//下面就是一个CAS计算</span></span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (U.compareAndSwapInt</span><br><span class="line">                     (<span class="keyword">this</span>, TRANSFERINDEX, nextIndex,</span><br><span class="line">                      nextBound = (nextIndex &gt; stride ?</span><br><span class="line">                                   nextIndex - stride : <span class="number">0</span>))) &#123;</span><br><span class="line">                bound = nextBound;</span><br><span class="line">                i = nextIndex - <span class="number">1</span>;</span><br><span class="line">                advance = <span class="keyword">false</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (i &lt; <span class="number">0</span> || i &gt;= n || i + n &gt;= nextn) &#123;</span><br><span class="line">            <span class="keyword">int</span> sc;</span><br><span class="line">            <span class="comment">//如果原table已经复制结束</span></span><br><span class="line">            <span class="keyword">if</span> (finishing) &#123;</span><br><span class="line">                nextTable = <span class="keyword">null</span>; <span class="comment">//可以看出在扩容的时候nextTable只是类似于一个temp用完会丢掉</span></span><br><span class="line">                table = nextTab;</span><br><span class="line">                sizeCtl = (n &lt;&lt; <span class="number">1</span>) - (n &gt;&gt;&gt; <span class="number">1</span>); <span class="comment">//修改扩容后的阀值，应该是现在容量的0.75倍</span></span><br><span class="line">                <span class="keyword">return</span>;<span class="comment">//结束循环</span></span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//采用CAS算法更新SizeCtl。</span></span><br><span class="line">            <span class="keyword">if</span> (U.compareAndSwapInt(<span class="keyword">this</span>, SIZECTL, sc = sizeCtl, sc - <span class="number">1</span>)) &#123;</span><br><span class="line">                <span class="keyword">if</span> ((sc - <span class="number">2</span>) != resizeStamp(n) &lt;&lt; RESIZE_STAMP_SHIFT)</span><br><span class="line">                    <span class="keyword">return</span>;</span><br><span class="line">                finishing = advance = <span class="keyword">true</span>;</span><br><span class="line">                i = n; <span class="comment">// recheck before commit</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//CAS算法获取某一个数组的节点，为空就设为forwordingNode</span></span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> ((f = tabAt(tab, i)) == <span class="keyword">null</span>)</span><br><span class="line">            advance = casTabAt(tab, i, <span class="keyword">null</span>, fwd);</span><br><span class="line">       <span class="comment">//如果这个节点的hash值是MOVED，就表示这个节点是forwordingNode节点，就表示这个节点已经被处理过了，直接跳过</span></span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> ((fh = f.hash) == MOVED)</span><br><span class="line">            advance = <span class="keyword">true</span>; <span class="comment">// already processed</span></span><br><span class="line">        <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">//对头节点进行加锁，禁止别的线程进入</span></span><br><span class="line">            <span class="keyword">synchronized</span> (f) &#123;</span><br><span class="line">            <span class="comment">//CAS校验这个节点是否在table对应的i处</span></span><br><span class="line">                <span class="keyword">if</span> (tabAt(tab, i) == f) &#123;</span><br><span class="line">                    Node&lt;K,V&gt; ln, hn;</span><br><span class="line">                    <span class="comment">//如果这个节点的确是链表节点</span></span><br><span class="line">                    <span class="comment">//把链表拆分成两个小列表并存储到nextTable对应的两个位置</span></span><br><span class="line">                    <span class="keyword">if</span> (fh &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">                        <span class="keyword">int</span> runBit = fh &amp; n;</span><br><span class="line">                        Node&lt;K,V&gt; lastRun = f;</span><br><span class="line">                        <span class="keyword">for</span> (Node&lt;K,V&gt; p = f.next; p != <span class="keyword">null</span>; p = p.next) &#123;</span><br><span class="line">                            <span class="keyword">int</span> b = p.hash &amp; n;</span><br><span class="line">                            <span class="keyword">if</span> (b != runBit) &#123;</span><br><span class="line">                                runBit = b;</span><br><span class="line">                                lastRun = p;</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;</span><br><span class="line">                        <span class="keyword">if</span> (runBit == <span class="number">0</span>) &#123;</span><br><span class="line">                            ln = lastRun;</span><br><span class="line">                            hn = <span class="keyword">null</span>;</span><br><span class="line">                        &#125;</span><br><span class="line">                        <span class="keyword">else</span> &#123;</span><br><span class="line">                            hn = lastRun;</span><br><span class="line">                            ln = <span class="keyword">null</span>;</span><br><span class="line">                        &#125;</span><br><span class="line">                        <span class="keyword">for</span> (Node&lt;K,V&gt; p = f; p != lastRun; p = p.next) &#123;</span><br><span class="line">                            <span class="keyword">int</span> ph = p.hash; K pk = p.key; V pv = p.val;</span><br><span class="line">                            <span class="keyword">if</span> ((ph &amp; n) == <span class="number">0</span>)</span><br><span class="line">                                ln = <span class="keyword">new</span> Node&lt;K,V&gt;(ph, pk, pv, ln);</span><br><span class="line">                            <span class="keyword">else</span></span><br><span class="line">                                hn = <span class="keyword">new</span> Node&lt;K,V&gt;(ph, pk, pv, hn);</span><br><span class="line">                        &#125;</span><br><span class="line">                        <span class="comment">//CAS存储在nextTable的i位置上</span></span><br><span class="line">                        setTabAt(nextTab, i, ln);</span><br><span class="line">                        <span class="comment">//CAS存储在nextTable的i+n位置上</span></span><br><span class="line">                        setTabAt(nextTab, i + n, hn);</span><br><span class="line">                        <span class="comment">//CAS在原table的i处设置forwordingNode节点，表示这个这个节点已经处理完毕</span></span><br><span class="line">                        setTabAt(tab, i, fwd);</span><br><span class="line">                        advance = <span class="keyword">true</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="comment">//如果这个节点是红黑树</span></span><br><span class="line">                    <span class="keyword">else</span> <span class="keyword">if</span> (f <span class="keyword">instanceof</span> TreeBin) &#123;</span><br><span class="line">                        TreeBin&lt;K,V&gt; t = (TreeBin&lt;K,V&gt;)f;</span><br><span class="line">                        TreeNode&lt;K,V&gt; lo = <span class="keyword">null</span>, loTail = <span class="keyword">null</span>;</span><br><span class="line">                        TreeNode&lt;K,V&gt; hi = <span class="keyword">null</span>, hiTail = <span class="keyword">null</span>;</span><br><span class="line">                        <span class="keyword">int</span> lc = <span class="number">0</span>, hc = <span class="number">0</span>;</span><br><span class="line">                        <span class="keyword">for</span> (Node&lt;K,V&gt; e = t.first; e != <span class="keyword">null</span>; e = e.next) &#123;</span><br><span class="line">                            <span class="keyword">int</span> h = e.hash;</span><br><span class="line">                            TreeNode&lt;K,V&gt; p = <span class="keyword">new</span> TreeNode&lt;K,V&gt;</span><br><span class="line">                                (h, e.key, e.val, <span class="keyword">null</span>, <span class="keyword">null</span>);</span><br><span class="line">                            <span class="keyword">if</span> ((h &amp; n) == <span class="number">0</span>) &#123;</span><br><span class="line">                                <span class="keyword">if</span> ((p.prev = loTail) == <span class="keyword">null</span>)</span><br><span class="line">                                    lo = p;</span><br><span class="line">                                <span class="keyword">else</span></span><br><span class="line">                                    loTail.next = p;</span><br><span class="line">                                loTail = p;</span><br><span class="line">                                ++lc;</span><br><span class="line">                            &#125;</span><br><span class="line">                            <span class="keyword">else</span> &#123;</span><br><span class="line">                                <span class="keyword">if</span> ((p.prev = hiTail) == <span class="keyword">null</span>)</span><br><span class="line">                                    hi = p;</span><br><span class="line">                                <span class="keyword">else</span></span><br><span class="line">                                    hiTail.next = p;</span><br><span class="line">                                hiTail = p;</span><br><span class="line">                                ++hc;</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;</span><br><span class="line">                        <span class="comment">//如果拆分后的树的节点数量已经少于6个就需要重新转化为链表</span></span><br><span class="line">                        ln = (lc &lt;= UNTREEIFY_THRESHOLD) ? untreeify(lo) :</span><br><span class="line">                            (hc != <span class="number">0</span>) ? <span class="keyword">new</span> TreeBin&lt;K,V&gt;(lo) : t;</span><br><span class="line">                        hn = (hc &lt;= UNTREEIFY_THRESHOLD) ? untreeify(hi) :</span><br><span class="line">                            (lc != <span class="number">0</span>) ? <span class="keyword">new</span> TreeBin&lt;K,V&gt;(hi) : t;</span><br><span class="line">                            <span class="comment">//CAS存储在nextTable的i位置上</span></span><br><span class="line">                        setTabAt(nextTab, i, ln);</span><br><span class="line">                          <span class="comment">//CAS存储在nextTable的i+n位置上</span></span><br><span class="line">                        setTabAt(nextTab, i + n, hn);</span><br><span class="line">                        <span class="comment">//CAS在原table的i处设置forwordingNode节点，表示这个这个节点已经处理完毕</span></span><br><span class="line">                        setTabAt(tab, i, fwd);</span><br><span class="line">                        advance = <span class="keyword">true</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="PUT方法"><a href="#PUT方法" class="headerlink" title="PUT方法"></a><strong>PUT方法</strong></h3><p>再这之前，先简单说一下PUT的具体操作：<br>①先传入一个k和v的键值对，不可为空（HashMap是可以为空的），如果为空就直接报错。<br>②接着去判断table是否为空，如果为空就进入初始化阶段。<br>③如果判断数组中某个指定的桶是空的，那就直接把键值对插入到这个桶中作为头节点，而且这个操作不用加锁。<br>④如果这个要插入的桶中的hash值为-1，也就是MOVED状态（也就是这个节点是forwordingNode），那就是说明有线程正在进行扩容操作，那么当前线程就进入协助扩容阶段。<br>⑤需要把数据插入到链表或者树中，如果这个节点是一个链表节点，那么就遍历这个链表，如果发现有相同的key值就更新value值，如果遍历完了都没有发现相同的key值，就需要在链表的尾部插入该数据。插入结束之后判断该链表节点个数是否大于8，如果大于就需要把链表转化为红黑树存储。<br>⑥如果这个节点是一个红黑树节点，那就需要按照树的插入规则进行插入。<br>⑦put结束之后，需要给map已存储的数量+1，在addCount方法中判断是否需要扩容</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** Implementation for put and putIfAbsent */</span></span><br><span class="line"><span class="function"><span class="keyword">final</span> V <span class="title">putVal</span><span class="params">(K key, V value, <span class="keyword">boolean</span> onlyIfAbsent)</span> </span>&#123;</span><br><span class="line"><span class="comment">//key和value都不可为空，为空直接抛出错误</span></span><br><span class="line">    <span class="keyword">if</span> (key == <span class="keyword">null</span> || value == <span class="keyword">null</span>) <span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException();</span><br><span class="line">    <span class="comment">//计算Hash值，确定数组下标，这个和HashMap是一样的，我再HashMap的第一篇有介绍过</span></span><br><span class="line">    <span class="keyword">int</span> hash = spread(key.hashCode());</span><br><span class="line">    <span class="keyword">int</span> binCount = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">//进入无线循环，直到插入为止</span></span><br><span class="line">    <span class="keyword">for</span> (Node&lt;K,V&gt;[] tab = table;;) &#123;</span><br><span class="line">        Node&lt;K,V&gt; f; <span class="keyword">int</span> n, i, fh;</span><br><span class="line">        <span class="comment">//如果table为空或者容量为0就表示没有初始化</span></span><br><span class="line">        <span class="keyword">if</span> (tab == <span class="keyword">null</span> || (n = tab.length) == <span class="number">0</span>)</span><br><span class="line">            tab = initTable();<span class="comment">//初始化数组</span></span><br><span class="line">         <span class="comment">//CAS如果查询数组的某个桶是空的，就直接插入该桶中</span></span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> ((f = tabAt(tab, i = (n - <span class="number">1</span>) &amp; hash)) == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (casTabAt(tab, i, <span class="keyword">null</span>,</span><br><span class="line">                         <span class="keyword">new</span> Node&lt;K,V&gt;(hash, key, value, <span class="keyword">null</span>)))</span><br><span class="line">                <span class="keyword">break</span>;                   <span class="comment">// no lock when adding to empty bin这句话的意思是这个时候插入不用加锁</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//如果在插入的时候，节点是一个forwordingNode状态，表示正在扩容，那么当前线程进行帮助扩容</span></span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> ((fh = f.hash) == MOVED)</span><br><span class="line">            tab = helpTransfer(tab, f);</span><br><span class="line">        <span class="keyword">else</span> &#123;</span><br><span class="line">            V oldVal = <span class="keyword">null</span>;</span><br><span class="line">            <span class="comment">//锁定头节点</span></span><br><span class="line">            <span class="keyword">synchronized</span> (f) &#123;</span><br><span class="line">            <span class="comment">//确定这个节点的确是数组中的这个头结点</span></span><br><span class="line">                <span class="keyword">if</span> (tabAt(tab, i) == f) &#123;</span><br><span class="line">                <span class="comment">//是个链表</span></span><br><span class="line">                    <span class="keyword">if</span> (fh &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">                        binCount = <span class="number">1</span>;</span><br><span class="line">                        <span class="comment">//遍历这个链表</span></span><br><span class="line">                        <span class="keyword">for</span> (Node&lt;K,V&gt; e = f;; ++binCount) &#123;</span><br><span class="line">                            K ek;</span><br><span class="line">                            <span class="comment">//如果遍历到一个值，这个值和当前的key是相同的，那就更改value值</span></span><br><span class="line">                            <span class="keyword">if</span> (e.hash == hash &amp;&amp;</span><br><span class="line">                                ((ek = e.key) == key ||</span><br><span class="line">                                 (ek != <span class="keyword">null</span> &amp;&amp; key.equals(ek)))) &#123;</span><br><span class="line">                                oldVal = e.val;</span><br><span class="line">                                <span class="keyword">if</span> (!onlyIfAbsent)</span><br><span class="line">                                    e.val = value;</span><br><span class="line">                                <span class="keyword">break</span>;</span><br><span class="line">                            &#125;</span><br><span class="line">                            Node&lt;K,V&gt; pred = e;</span><br><span class="line">                            <span class="comment">//如果遍历到结束都没有遇到相同的key，且后面没有节点了，那就直接在尾部插入一个</span></span><br><span class="line">                            <span class="keyword">if</span> ((e = e.next) == <span class="keyword">null</span>) &#123;</span><br><span class="line">                                pred.next = <span class="keyword">new</span> Node&lt;K,V&gt;(hash, key,</span><br><span class="line">                                                          value, <span class="keyword">null</span>);</span><br><span class="line">                                <span class="keyword">break</span>;</span><br><span class="line">                            &#125;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                    <span class="comment">//如果是红黑树存储就需要用红黑树的专门处理了，笔者不再展开。</span></span><br><span class="line">                    <span class="keyword">else</span> <span class="keyword">if</span> (f <span class="keyword">instanceof</span> TreeBin) &#123;</span><br><span class="line">                        Node&lt;K,V&gt; p;</span><br><span class="line">                        binCount = <span class="number">2</span>;</span><br><span class="line">                        <span class="keyword">if</span> ((p = ((TreeBin&lt;K,V&gt;)f).putTreeVal(hash, key,</span><br><span class="line">                                                       value)) != <span class="keyword">null</span>) &#123;</span><br><span class="line">                            oldVal = p.val;</span><br><span class="line">                            <span class="keyword">if</span> (!onlyIfAbsent)</span><br><span class="line">                                p.val = value;</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">if</span> (binCount != <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="comment">//判断节点数量是否大于8，如果大于就需要把链表转化成红黑树</span></span><br><span class="line">                <span class="keyword">if</span> (binCount &gt;= TREEIFY_THRESHOLD)</span><br><span class="line">                    treeifyBin(tab, i);</span><br><span class="line">                <span class="keyword">if</span> (oldVal != <span class="keyword">null</span>)</span><br><span class="line">                    <span class="keyword">return</span> oldVal;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//map已存储的数量+1</span></span><br><span class="line">    addCount(<span class="number">1L</span>, binCount);</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其实，相对于transfer来说，PUT理解起来是不是简单很多？说到transfer，咋在PUT方法中都没出现过，只有一个helpTransfer（协助扩容）方法呢？其实，transfer方法放在了addCount方法中，下面是addCount方法的源码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">addCount</span><span class="params">(<span class="keyword">long</span> x, <span class="keyword">int</span> check)</span> </span>&#123;</span><br><span class="line">    CounterCell[] as; <span class="keyword">long</span> b, s;</span><br><span class="line">    <span class="keyword">if</span> ((as = counterCells) != <span class="keyword">null</span> ||</span><br><span class="line">        !U.compareAndSwapLong(<span class="keyword">this</span>, BASECOUNT, b = baseCount, s = b + x)) &#123;</span><br><span class="line">        CounterCell a; <span class="keyword">long</span> v; <span class="keyword">int</span> m;</span><br><span class="line">        <span class="keyword">boolean</span> uncontended = <span class="keyword">true</span>;</span><br><span class="line">        <span class="keyword">if</span> (as == <span class="keyword">null</span> || (m = as.length - <span class="number">1</span>) &lt; <span class="number">0</span> ||</span><br><span class="line">            (a = as[ThreadLocalRandom.getProbe() &amp; m]) == <span class="keyword">null</span> ||</span><br><span class="line">            !(uncontended =</span><br><span class="line">              U.compareAndSwapLong(a, CELLVALUE, v = a.value, v + x))) &#123;</span><br><span class="line">            fullAddCount(x, uncontended);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (check &lt;= <span class="number">1</span>)</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        s = sumCount();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//是否需要进行扩容操作</span></span><br><span class="line">    <span class="keyword">if</span> (check &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">        Node&lt;K,V&gt;[] tab, nt; <span class="keyword">int</span> n, sc;</span><br><span class="line">        <span class="keyword">while</span> (s &gt;= (<span class="keyword">long</span>)(sc = sizeCtl) &amp;&amp; (tab = table) != <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">               (n = tab.length) &lt; MAXIMUM_CAPACITY) &#123;</span><br><span class="line">            <span class="keyword">int</span> rs = resizeStamp(n);</span><br><span class="line">            <span class="comment">//如果小于0就说明已经再扩容或者已经在初始化</span></span><br><span class="line">            <span class="keyword">if</span> (sc &lt; <span class="number">0</span>) &#123;</span><br><span class="line">                <span class="keyword">if</span> ((sc &gt;&gt;&gt; RESIZE_STAMP_SHIFT) != rs || sc == rs + <span class="number">1</span> ||</span><br><span class="line">                    sc == rs + MAX_RESIZERS || (nt = nextTable) == <span class="keyword">null</span> ||</span><br><span class="line">                    transferIndex &lt;= <span class="number">0</span>)</span><br><span class="line">                    <span class="keyword">break</span>;</span><br><span class="line">                    <span class="comment">//如果是正在扩容就协助扩容</span></span><br><span class="line">                <span class="keyword">if</span> (U.compareAndSwapInt(<span class="keyword">this</span>, SIZECTL, sc, sc + <span class="number">1</span>))</span><br><span class="line">                    transfer(tab, nt);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//如果正在初始化就首次发起扩容</span></span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (U.compareAndSwapInt(<span class="keyword">this</span>, SIZECTL, sc,</span><br><span class="line">                                         (rs &lt;&lt; RESIZE_STAMP_SHIFT) + <span class="number">2</span>))</span><br><span class="line">                transfer(tab, <span class="keyword">null</span>);</span><br><span class="line">            s = sumCount();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="GET方法"><a href="#GET方法" class="headerlink" title="GET方法"></a><strong>GET方法</strong></h3><p>Get方法不论是在HashMap和ConcurrentHashMap都是最容易理解的，它的主要步骤是：<br>①先判断数组的桶中的第一个节点是否寻找的对象是为链表还是红黑树，<br>②如果是红黑树另外做处理<br>③如果是链表就先判断头节点是否为要查找的节点，如果不是那么就遍历这个链表查询<br>④如果都不是，那就返回null值。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> V <span class="title">get</span><span class="params">(Object key)</span> </span>&#123;</span><br><span class="line">    Node&lt;K,V&gt;[] tab; Node&lt;K,V&gt; e, p; <span class="keyword">int</span> n, eh; K ek;</span><br><span class="line">    <span class="keyword">int</span> h = spread(key.hashCode());</span><br><span class="line">    <span class="comment">//数组已被初始化且指定桶中不为空</span></span><br><span class="line">    <span class="keyword">if</span> ((tab = table) != <span class="keyword">null</span> &amp;&amp; (n = tab.length) &gt; <span class="number">0</span> &amp;&amp;</span><br><span class="line">        (e = tabAt(tab, (n - <span class="number">1</span>) &amp; h)) != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="comment">//先判断头节点，如果头节点的hash值与入参key的hash值相同</span></span><br><span class="line">        <span class="keyword">if</span> ((eh = e.hash) == h) &#123;</span><br><span class="line">        <span class="comment">//头节点的key就是传入的key</span></span><br><span class="line">            <span class="keyword">if</span> ((ek = e.key) == key || (ek != <span class="keyword">null</span> &amp;&amp; key.equals(ek)))</span><br><span class="line">                <span class="keyword">return</span> e.val;<span class="comment">//返回头节点的value值</span></span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//eh&lt;0表示这个节点是红黑树</span></span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (eh &lt; <span class="number">0</span>)</span><br><span class="line">            <span class="keyword">return</span> (p = e.find(h, key)) != <span class="keyword">null</span> ? p.val : <span class="keyword">null</span>;<span class="comment">//直接从树上进行查找返回结果，不存在就返回null</span></span><br><span class="line"></span><br><span class="line">        <span class="comment">//如果首节点不是查找对象且不是红黑树结构，那边就遍历这个列表</span></span><br><span class="line">        <span class="keyword">while</span> ((e = e.next) != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span> (e.hash == h &amp;&amp;</span><br><span class="line">                ((ek = e.key) == key || (ek != <span class="keyword">null</span> &amp;&amp; key.equals(ek))))</span><br><span class="line">                <span class="keyword">return</span> e.val;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//都没有找到就直接返回null值</span></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+      
+    </div>
+    
+    
+    
+
+	<div>
+    
+    <div>
+    
+        <div style="text-align:center;color: #ccc;font-size:14px;">-------------本文结束<i class="fa fa-paw"></i>感谢您的阅读-------------</div>
+    
+</div>
+
+
+    
+    </div>
+	
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/数据结构/" rel="tag"><i class="fa fa-tag"></i> 数据结构</a>
+          
+            <a href="/tags/乐观锁/" rel="tag"><i class="fa fa-tag"></i> 乐观锁</a>
+          
+            <a href="/tags/悲观锁/" rel="tag"><i class="fa fa-tag"></i> 悲观锁</a>
+          
+            <a href="/tags/CAS算法/" rel="tag"><i class="fa fa-tag"></i> CAS算法</a>
+          
+            <a href="/tags/volatile/" rel="tag"><i class="fa fa-tag"></i> volatile</a>
+          
+            <a href="/tags/线程安全/" rel="tag"><i class="fa fa-tag"></i> 线程安全</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/11/05/数据结构——HashMap/" rel="next" title="数据结构——HashMap">
+                <i class="fa fa-chevron-left"></i> 数据结构——HashMap
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/11/05/算法——排序/" rel="prev" title="算法——排序">
+                算法——排序 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/pic/timg.jpg" alt="虎良钰">
+            
+              <p class="site-author-name" itemprop="name">虎良钰</p>
+              <p class="site-description motion-element" itemprop="description">江月何年初照人</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">13</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#技术点："><span class="nav-number">1.</span> <span class="nav-text">技术点：</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-悲观锁和乐观锁"><span class="nav-number">1.1.</span> <span class="nav-text">1.悲观锁和乐观锁</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-原子性，指令有序性和线程可见性"><span class="nav-number">1.2.</span> <span class="nav-text">2.原子性，指令有序性和线程可见性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-无锁算法"><span class="nav-number">1.3.</span> <span class="nav-text">3.无锁算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-内存屏障"><span class="nav-number">1.4.</span> <span class="nav-text">4.内存屏障</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Java内存模型"><span class="nav-number">2.</span> <span class="nav-text">Java内存模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-解释："><span class="nav-number">2.1.</span> <span class="nav-text">1.解释：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-基本执行步骤："><span class="nav-number">2.2.</span> <span class="nav-text">2.基本执行步骤：</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#volatile关键字"><span class="nav-number">3.</span> <span class="nav-text">volatile关键字</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#CAS算法"><span class="nav-number">4.</span> <span class="nav-text">CAS算法</span></a></li></ol><li class="nav-item nav-level-1"><a class="nav-link" href="#如何实现线程安全："><span class="nav-number"></span> <span class="nav-text">如何实现线程安全：</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#如何存储数据："><span class="nav-number">1.</span> <span class="nav-text">如何存储数据：</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#重要的成员变量："><span class="nav-number">1.1.</span> <span class="nav-text">重要的成员变量：</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1、capacity："><span class="nav-number">1.1.1.</span> <span class="nav-text">1、capacity：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2、laodfactor："><span class="nav-number">1.1.2.</span> <span class="nav-text">2、laodfactor：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3、TREEIFY-THRESHOLD与UNTREEIFY-THRESHOLD："><span class="nav-number">1.1.3.</span> <span class="nav-text">3、TREEIFY_THRESHOLD与UNTREEIFY_THRESHOLD：</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#极其重要的几个内部类："><span class="nav-number">1.2.</span> <span class="nav-text">极其重要的几个内部类：</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1、Node"><span class="nav-number">1.2.1.</span> <span class="nav-text">1、Node</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2、TreeNode和TreeBin"><span class="nav-number">1.2.2.</span> <span class="nav-text">2、TreeNode和TreeBin</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3、ForwordingNode"><span class="nav-number">1.2.3.</span> <span class="nav-text">3、ForwordingNode</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#引言"><span class="nav-number"></span> <span class="nav-text">引言</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#transfer方法（扩容方法）"><span class="nav-number">0.1.</span> <span class="nav-text">transfer方法（扩容方法）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PUT方法"><span class="nav-number">0.2.</span> <span class="nav-text">PUT方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#GET方法"><span class="nav-number">0.3.</span> <span class="nav-text">GET方法</span></a></li></ol></li></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<div class="copyright">&copy; <span itemprop="copyrightYear">2018</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">虎良钰</span>
+
+  
+</div>
+
+<div class="powered-by">
+<i class="fa fa-user-md"></i><span id="busuanzi_container_site_uv">
+  本站访客数:<span id="busuanzi_value_site_uv"></span>
+</span>
+</div>
+
+
+  <span class="post-meta-divider">|</span>
+
+
+<div class="theme-info">
+  <div class="powered-by"></div>
+  <span class="post-count">博客全站共16.8k字</span>
+</div>
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/three/three.min.js"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/three/canvas_lines.min.js"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url);
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
