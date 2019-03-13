@@ -296,6 +296,159 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/03/14/Linux下JVM监控/">
+
+    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="虎良钰">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/pic/timg.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Tiger">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2019/03/14/Linux下JVM监控/" itemprop="url">记一次jvm调优——附带linux下监控JVM常用指令</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2019-03-14T00:06:00+08:00">
+                2019-03-14
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope="" itemtype="http://schema.org/Thing">
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          <h1 id="Linux下JVM监控——记一次调优"><a href="#Linux下JVM监控——记一次调优" class="headerlink" title="Linux下JVM监控——记一次调优"></a>Linux下JVM监控——记一次调优</h1><pre><code>测试版本时发现在项目运行中，tomcat老是莫名其妙的就挂掉半天得不到响应，排查掉代码出现问题的可能后，就想到了JVM虚拟机上面去，用-gccause指令查看了下发现20分钟发生了1000多次full gc，full gc是老年代发生的gc，正常情况下也就10到20次就差不多了，这么频繁的full gc肯定会影响服务器的性能啊，然后思考full gc发生的原因，full gc是老年代的gc，对象被丢到老年代会有两种机制，一种是超过当前年轻代可放置空间了，一种是超过对象大小的设置阀值而被当成大对象直接丢到老年代，于是用-gccause指令再次查看survivor区的占比，发现survivor区常年占比百分之80左右，然后就猜测可能是年轻代放不下了而被丢进的老年代，所以用-gccapacity观察了下新生代和老年代分配的堆内存空间，发现总和只有1G，后续把堆内存分配空间给到了3G问题就解决了。
+
+后续：对于JVM来说大对象是灾难，在程序中应尽量避免，比这个还遭的是一堆朝生夕死的大对象，在写业务时应尽量避免产生这样的大对象。
+</code></pre>
+          <!--noindex-->
+          <div class="post-button text-center">
+            <a class="btn" href="/2019/03/14/Linux下JVM监控/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+          <!--/noindex-->
+        
+      
+    </div>
+    
+    
+    
+
+	<div>
+    
+    </div>
+	
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/11/11/商城项目1-springboot初阶/">
 
     <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
@@ -1090,7 +1243,7 @@
               
                 <a href="/archives/">
               
-                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-count">6</span>
                   <span class="site-state-item-name">日志</span>
                 </a>
               </div>
@@ -1101,7 +1254,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-count">4</span>
                   <span class="site-state-item-name">分类</span>
                 </a>
               </div>
@@ -1112,7 +1265,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">16</span>
+                  <span class="site-state-item-count">18</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -1171,7 +1324,7 @@
 
 <div class="theme-info">
   <div class="powered-by"></div>
-  <span class="post-count">博客全站共25.5k字</span>
+  <span class="post-count">博客全站共28.5k字</span>
 </div>
 
 
