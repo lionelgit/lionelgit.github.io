@@ -79,18 +79,18 @@
 
 
 
-<meta name="description" content="Linux下JVM监控——记一次调优测试版本时发现在项目运行中，tomcat老是莫名其妙的就挂掉半天得不到响应，排查掉代码出现问题的可能后，就想到了JVM虚拟机上面去，用-gccause指令查看了下发现20分钟发生了1000多次full gc，full gc是老年代发生的gc，正常情况下也就10到20次就差不多了，这么频繁的full gc肯定会影响服务器的性能啊，然后思考full gc发生的原因，">
+<meta name="description" content="Linux下JVM监控——记一次调优 测试版本时发现在项目运行中，tomcat老是莫名其妙的就挂掉半天得不到响应，排查掉代码出现问题的可能后，就想到了JVM虚拟机上面去，用-gccause指令查看了下发现20分钟发生了1000多次full gc，full gc是老年代发生的gc，正常情况下也就10到20次就差不多了，这么频繁的full gc肯定会影响服务器的性能啊，然后思考full gc发生的原因">
 <meta name="keywords" content="Linux,JVM调优">
 <meta property="og:type" content="article">
 <meta property="og:title" content="记一次jvm调优——附带linux下监控JVM常用指令">
 <meta property="og:url" content="http://yoursite.com/2019/03/14/Linux下JVM监控/index.html">
 <meta property="og:site_name" content="Tiger">
-<meta property="og:description" content="Linux下JVM监控——记一次调优测试版本时发现在项目运行中，tomcat老是莫名其妙的就挂掉半天得不到响应，排查掉代码出现问题的可能后，就想到了JVM虚拟机上面去，用-gccause指令查看了下发现20分钟发生了1000多次full gc，full gc是老年代发生的gc，正常情况下也就10到20次就差不多了，这么频繁的full gc肯定会影响服务器的性能啊，然后思考full gc发生的原因，">
+<meta property="og:description" content="Linux下JVM监控——记一次调优 测试版本时发现在项目运行中，tomcat老是莫名其妙的就挂掉半天得不到响应，排查掉代码出现问题的可能后，就想到了JVM虚拟机上面去，用-gccause指令查看了下发现20分钟发生了1000多次full gc，full gc是老年代发生的gc，正常情况下也就10到20次就差不多了，这么频繁的full gc肯定会影响服务器的性能啊，然后思考full gc发生的原因">
 <meta property="og:locale" content="zh-Hans">
-<meta property="og:updated_time" content="2019-03-13T16:20:09.180Z">
+<meta property="og:updated_time" content="2019-03-13T16:29:36.767Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="记一次jvm调优——附带linux下监控JVM常用指令">
-<meta name="twitter:description" content="Linux下JVM监控——记一次调优测试版本时发现在项目运行中，tomcat老是莫名其妙的就挂掉半天得不到响应，排查掉代码出现问题的可能后，就想到了JVM虚拟机上面去，用-gccause指令查看了下发现20分钟发生了1000多次full gc，full gc是老年代发生的gc，正常情况下也就10到20次就差不多了，这么频繁的full gc肯定会影响服务器的性能啊，然后思考full gc发生的原因，">
+<meta name="twitter:description" content="Linux下JVM监控——记一次调优 测试版本时发现在项目运行中，tomcat老是莫名其妙的就挂掉半天得不到响应，排查掉代码出现问题的可能后，就想到了JVM虚拟机上面去，用-gccause指令查看了下发现20分钟发生了1000多次full gc，full gc是老年代发生的gc，正常情况下也就10到20次就差不多了，这么频繁的full gc肯定会影响服务器的性能啊，然后思考full gc发生的原因">
 
 
 
@@ -386,10 +386,11 @@
       
 
       
-        <h1 id="Linux下JVM监控——记一次调优"><a href="#Linux下JVM监控——记一次调优" class="headerlink" title="Linux下JVM监控——记一次调优"></a>Linux下JVM监控——记一次调优</h1><pre><code>测试版本时发现在项目运行中，tomcat老是莫名其妙的就挂掉半天得不到响应，排查掉代码出现问题的可能后，就想到了JVM虚拟机上面去，用-gccause指令查看了下发现20分钟发生了1000多次full gc，full gc是老年代发生的gc，正常情况下也就10到20次就差不多了，这么频繁的full gc肯定会影响服务器的性能啊，然后思考full gc发生的原因，full gc是老年代的gc，对象被丢到老年代会有两种机制，一种是超过当前年轻代可放置空间了，一种是超过对象大小的设置阀值而被当成大对象直接丢到老年代，于是用-gccause指令再次查看survivor区的占比，发现survivor区常年占比百分之80左右，然后就猜测可能是年轻代放不下了而被丢进的老年代，所以用-gccapacity观察了下新生代和老年代分配的堆内存空间，发现总和只有1G，后续把堆内存分配空间给到了3G问题就解决了。
-
-后续：对于JVM来说大对象是灾难，在程序中应尽量避免，比这个还遭的是一堆朝生夕死的大对象，在写业务时应尽量避免产生这样的大对象。
-</code></pre><a id="more"></a>
+        <h1 id="Linux下JVM监控——记一次调优"><a href="#Linux下JVM监控——记一次调优" class="headerlink" title="Linux下JVM监控——记一次调优"></a>Linux下JVM监控——记一次调优</h1><blockquote>
+<p>测试版本时发现在项目运行中，tomcat老是莫名其妙的就挂掉半天得不到响应，排查掉代码出现问题的可能后，就想到了JVM虚拟机上面去，用-gccause指令查看了下发现20分钟发生了1000多次full gc，full gc是老年代发生的gc，正常情况下也就10到20次就差不多了，这么频繁的full gc肯定会影响服务器的性能啊，然后思考full gc发生的原因，full gc是老年代的gc，对象被丢到老年代会有两种机制，一种是超过当前年轻代可放置空间了，一种是超过对象大小的设置阀值而被当成大对象直接丢到老年代，于是用-gccause指令再次查看survivor区的占比，发现survivor区常年占比百分之80左右，然后就猜测可能是年轻代放不下了而被丢进的老年代，所以用-gccapacity观察了下新生代和老年代分配的堆内存空间，发现总和只有1G，后续把堆内存分配空间给到了3G问题就解决了。</p>
+<p>后续：对于JVM来说大对象是灾难，在程序中应尽量避免，比这个还遭的是一堆朝生夕死的大对象，在写业务时应尽量避免产生这样的大对象。</p>
+</blockquote>
+<a id="more"></a>
 <h2 id="JDK内置工具使用"><a href="#JDK内置工具使用" class="headerlink" title="JDK内置工具使用"></a>JDK内置工具使用</h2><ul>
 <li>jps(Java Virtual Machine Process Status Tool)<br>​    查看所有的jvm进程，包括进程ID，进程启动的路径等等。</li>
 <li>jstack(Java Stack Trace)<br>​    ① 观察jvm中当前所有线程的运行情况和线程当前状态。<br>​    ② 系统崩溃了？如果java程序崩溃生成core文件，jstack工具可以用来获得core文件的java stack和native stack的信息，从而可以轻松地知道java程序是如何崩溃和在程序何处发生问题。<br>​    ③ 系统hung住了？jstack工具还可以附属到正在运行的java程序中，看到当时运行的java程序的java stack和native stack的信息, 如果现在运行的java程序呈现hung的状态，jstack是非常有用的。</li>
